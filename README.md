@@ -1,4 +1,4 @@
-# API Gateway user library
+# API Gateway Middleware
 
 this library provides PSR-7 middleware in order to get detailed user information by api umbrella's HTTP Header `X_API_USER_ID`
 
@@ -24,6 +24,21 @@ this library provides PSR-7 middleware in order to get detailed user information
  ];
  ```
  
+Activate ConfigProvider
+```php
+<?php
+// config/config.php
+
+
+$aggregator = new ConfigAggregator([
+    Argus\ConfigProvider::class,
+    ...
+    ApiGateway\ConfigProvider::class,
+    ...
+], $cacheConfig['config_cache_path']);
+
+```
+
 #### add middleware to pipeline
 there are two possibilities to configure the project using the `AuthenticationMiddleware`.
 
