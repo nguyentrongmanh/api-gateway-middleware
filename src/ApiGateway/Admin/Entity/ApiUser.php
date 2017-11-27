@@ -1,6 +1,6 @@
 <?php
 
-namespace ApiGateway\Entity;
+namespace ApiGateway\Admin\Entity;
 
 class ApiUser
 {

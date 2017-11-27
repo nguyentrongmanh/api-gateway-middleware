@@ -1,6 +1,6 @@
 <?php
 
-namespace ApiGateway\Cache\Storage;
+namespace ApiGateway\Admin\Cache\Storage;
 
 use Interop\Container\ContainerInterface;
 

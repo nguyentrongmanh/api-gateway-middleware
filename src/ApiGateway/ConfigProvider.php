@@ -30,8 +30,9 @@ class ConfigProvider
             'invokables' => [
             ],
             'factories'  => [
-            	Client::class => ClientFactory::class,
-	            Cache\Storage\MongoDb::class => Cache\Storage\MongoDbFactory::class,
+            	Admin\Client::class => Admin\ClientFactory::class,
+	            Admin\Cache\Storage\MongoDb::class => Admin\Cache\Storage\MongoDbFactory::class,
+                Admin\Middleware\AuthenticationMiddleware::class => Admin\Middleware\AuthenticationFactory::class,
             ],
         ];
     }

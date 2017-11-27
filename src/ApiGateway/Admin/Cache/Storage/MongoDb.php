@@ -1,8 +1,8 @@
 <?php
 
-namespace ApiGateway\Cache\Storage;
+namespace ApiGateway\Admin\Cache\Storage;
 
-use ApiGateway\Entity\ApiUser;
+use ApiGateway\Admin\Entity\ApiUser;
 use MongoDB\Client;
 use MongoDB\Collection;
 
@@ -18,7 +18,8 @@ class MongoDb implements StorageInterface
 		$this->collection = $collection;
 	}
 
-	public function set(ApiUser $apiUser) {
+	public function set(ApiUser $apiUser)
+    {
 		$this->collection->insertOne([
 			'_id' => $apiUser->getId(),
 			'userId' => $apiUser->getUserId(),
@@ -26,7 +27,8 @@ class MongoDb implements StorageInterface
 		]);
 	}
 
-	public function get(string $id) {
+	public function get(string $id)
+    {
 		if ($result = $this->collection->findOne(['_id' => $id])) {
 			$apiUser = new ApiUser();
 			$apiUser->setId($result->_id);
@@ -38,4 +40,9 @@ class MongoDb implements StorageInterface
 
 		return false;
 	}
+
+    public function remove(ApiUser $apiUser)
+    {
+        return $this->collection->deleteOne(['_id' => $apiUser->getId()]);
+    }
 }

@@ -1,13 +1,14 @@
 <?php
 
-namespace ApiGateway;
+namespace ApiGateway\Admin;
 
-use ApiGateway\Cache\Storage\NullStorage;
-use ApiGateway\Cache\Storage\StorageInterface;
-use ApiGateway\Entity\ApiUser;
+use ApiGateway\Admin\Cache\Storage\NullStorage;
+use ApiGateway\Admin\Cache\Storage\StorageInterface;
+use ApiGateway\Admin\Entity\ApiUser;
 use ApiGateway\Exception\InvalidArgumentException;
 use ApiGateway\Exception\RuntimeException;
 use Zend\Http;
+use MongoDB\Collection;
 
 class Client
 {
@@ -33,11 +34,17 @@ class Client
 	 */
 	protected $cache;
 
+    /**
+     * @var Collection
+     */
+	protected $userAgentCollection;
+
 	/**
 	 * Client constructor.
 	 */
-	public function __construct()
+	public function __construct(Collection $userAgentCollection)
 	{
+	    $this->userAgentCollection = $userAgentCollection;
 		$this->cache = new NullStorage([]);
 	}
 
@@ -49,10 +56,10 @@ class Client
 	 *
 	 * @return ApiUser
 	 */
-	public function getUserById(string $id) : ApiUser
+	public function getUserById(string $id, int $agentId) : ApiUser
 	{
 		if ($apiUser = $this->cache->get($id)) {
-			return $apiUser;
+//			return $apiUser;
 		}
 
 		$client = $this->getClient('users/' . $id);
@@ -68,16 +75,27 @@ class Client
 			throw new RuntimeException('invalid api gateway response. does not contain user information');
 		}
 
-		$parts = explode('|', $response->user->use_description);
+		if (!preg_match('~^([0-9]*)@~', $response->user->email, $m)) {
+            throw new RuntimeException('unable to get user id by api user email');
+        }
 
-		if (count($parts) < 2) {
-			throw new RuntimeException('unable to get user information from api gateway response');
-		}
+		$userId = $m[1];
+
+		$result = $this->userAgentCollection->findOne([
+		    'id' => $userId,
+            'agents' => [
+                '$in' => [(string) $agentId],
+            ],
+        ]);
+
+		if (!$result) {
+            throw new RuntimeException('403 Forbidden');
+        }
 
 		$user = new ApiUser();
 		$user->setId($id);
-		$user->setUserId($parts[0]);
-		$user->setAgentId($parts[1]);
+		$user->setUserId($userId);
+		$user->setAgentId($agentId);
 
 		$this->cache->set($user);
 
