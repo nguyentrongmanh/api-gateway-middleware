@@ -6,21 +6,25 @@ use ApiGateway\Admin\Entity\ApiUser;
 
 class NullStorage implements StorageInterface
 {
-	public function __construct(array $config)
-	{
-	}
-
-	public function set(ApiUser $apiUser)
+    public function __construct(array $config)
     {
-		// nothing to do
-	}
+    }
 
-	public function get(string $userId)
+    public function set(ApiUser $apiUser)
     {
-		return false;
-	}
+        // nothing to do
+    }
 
-	public function remove(ApiUser $apiUser)
+    /**
+     * @param string $userId
+     * @return ApiUser|null
+     */
+    public function get(string $userId)
+    {
+        return null;
+    }
+
+    public function remove(ApiUser $apiUser)
     {
         // nothing to do
     }

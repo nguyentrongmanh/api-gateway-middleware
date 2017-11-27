@@ -7,198 +7,284 @@ use ApiGateway\Admin\Cache\Storage\StorageInterface;
 use ApiGateway\Admin\Entity\ApiUser;
 use ApiGateway\Exception\InvalidArgumentException;
 use ApiGateway\Exception\RuntimeException;
-use Zend\Http;
 use MongoDB\Collection;
+use Zend\Http;
 
 class Client
 {
-	/**
-	 * api gateway internal api endpoint
-	 *
-	 * @var string
-	 */
-	protected $endpoint;
+    /**
+     * api gateway internal api endpoint
+     *
+     * @var string
+     */
+    protected $endpoint;
 
-	/**
-	 * @var string
-	 */
-	protected $adminAuthToken;
+    /**
+     * @var string
+     */
+    protected $adminAuthToken;
 
-	/**
-	 * @var string
-	 */
-	protected $key;
+    /**
+     * @var string
+     */
+    protected $key;
 
-	/**
-	 * @var StorageInterface
-	 */
-	protected $cache;
+    /**
+     * @var StorageInterface
+     */
+    protected $cache;
 
     /**
      * @var Collection
      */
-	protected $userAgentCollection;
+    protected $userAgentCollection;
 
-	/**
-	 * Client constructor.
-	 */
-	public function __construct(Collection $userAgentCollection)
-	{
-	    $this->userAgentCollection = $userAgentCollection;
-		$this->cache = new NullStorage([]);
-	}
+    /**
+     * Client constructor.
+     * @param Collection $userAgentCollection
+     */
+    public function __construct() // Collection $userAgentCollection)
+    {
+        // $this->userAgentCollection = $userAgentCollection;
+        $this->cache = new NullStorage([]);
+    }
 
-	/**
-	 * gets user information by api gateway's internal user id.
-	 * an api key is unique
-	 *
-	 * @param string $id
-	 *
-	 * @return ApiUser
-	 */
-	public function getUserById(string $id, int $agentId) : ApiUser
-	{
-		if ($apiUser = $this->cache->get($id)) {
-//			return $apiUser;
-		}
+    public function deleteUser(ApiUser $apiUser)
+    {
+        $client = $this->getClient('users/' . $apiUser->id);
+        $client->setMethod('DELETE');
 
-		$client = $this->getClient('users/' . $id);
-		$client->setMethod('GET');
+        $client->send();
+    }
 
-		$response = $client->send();
-
-		if (!$response = json_decode($response->getBody())) {
-			throw new RuntimeException('invalid api gateway response');
-		}
-
-		if (!isset($response->user)) {
-			throw new RuntimeException('invalid api gateway response. does not contain user information');
-		}
-
-		if (!preg_match('~^([0-9]*)@~', $response->user->email, $m)) {
-            throw new RuntimeException('unable to get user id by api user email');
+    /**
+     * returns prepared http client
+     *
+     * @param $resource
+     * @return Http\Client
+     */
+    protected function getClient($resource): Http\Client
+    {
+        if (!$this->endpoint) {
+            throw new InvalidArgumentException('no api gateway endpoint configured');
         }
 
-		$userId = $m[1];
-
-		$result = $this->userAgentCollection->findOne([
-		    'id' => $userId,
-            'agents' => [
-                '$in' => [(string) $agentId],
-            ],
-        ]);
-
-		if (!$result) {
-            throw new RuntimeException('403 Forbidden');
+        if (!$this->adminAuthToken) {
+            throw new InvalidArgumentException('no admin auth token configured');
         }
 
-		$user = new ApiUser();
-		$user->setId($id);
-		$user->setUserId($userId);
-		$user->setAgentId($agentId);
+        if (!$this->key) {
+            throw new InvalidArgumentException('no api key configured');
+        }
 
-		$this->cache->set($user);
+        $client = new Http\Client(rtrim($this->endpoint, '/') . '/' . $resource);
 
-		return $user;
-	}
+        $headers = $client->getRequest()->getHeaders();
+        $headers->addHeaderLine('X-Admin-Auth-Token', $this->adminAuthToken);
+        $headers->addHeaderLine('X-API-KEY', $this->key);
 
-	/**
-	 * returns prepared http client
-	 *
-	 * @return Http\Client
-	 */
-	protected function getClient($resource) : Http\Client
-	{
-		if (!$this->endpoint) {
-			throw new InvalidArgumentException('no api gateway endpoint configured');
-		}
+        return $client;
+    }
 
-		if (!$this->adminAuthToken) {
-			throw new InvalidArgumentException('no admin auth token configured');
-		}
+    public function getOrAddUser(ApiUser $apiUser): ApiUser
+    {
+        foreach (array('firstName', 'lastName', 'email', 'roles') as $key) {
+            if (empty($apiUser->{$key})) {
+                throw new InvalidArgumentException('Key ' . $key . ' is missing');
+            }
+        }
 
-		if (!$this->key) {
-			throw new InvalidArgumentException('no api key configured');
-		}
+        $user = $this->getUserByEmail($apiUser->email);
 
-		$client = new Http\Client($this->endpoint . '/' . $resource);
+        if ($user === null) {
+            $user = $this->addUser($apiUser);
+        }
 
-		$headers = $client->getRequest()->getHeaders();
-		$headers->addHeaderLine('X-Admin-Auth-Token', $this->adminAuthToken);
-		$headers->addHeaderLine('X-API-KEY', $this->key);
+        return $user;
+    }
 
-		return $client;
-	}
+    /**
+     * gets user information by api gateway's internal user email address.
+     *
+     * @param string $value
+     *
+     * @return ApiUser|null
+     */
+    public function getUserByEmail(string $value)
+    {
+        if ($apiUser = $this->cache->get($value)) {
+            return $apiUser;
+        }
 
-	/**
-	 * @return string
-	 */
-	public function getEndpoint(): string {
-		return $this->endpoint;
-	}
+        $client = $this->getClient('users/?search[value]=' . $value);
+        $client->setMethod('GET');
 
-	/**
-	 * @param string $endpoint
-	 *
-	 * @return Client
-	 */
-	public function setEndpoint(string $endpoint): Client {
-		$this->endpoint = $endpoint;
+        $response = $client->send();
 
-		return $this;
-	}
+        if (!$response = json_decode($response->getBody())) {
+            throw new RuntimeException('invalid api gateway response');
+        }
 
-	/**
-	 * @return string
-	 */
-	public function getAdminAuthToken(): string {
-		return $this->adminAuthToken;
-	}
+        if (!isset($response->data)) {
+            throw new RuntimeException('invalid api gateway response. does not contain user information');
+        }
 
-	/**
-	 * @param string $adminAuthToken
-	 *
-	 * @return Client
-	 */
-	public function setAdminAuthToken(string $adminAuthToken): Client {
-		$this->adminAuthToken = $adminAuthToken;
+        foreach ($response->data as $user) {
+            if ($user->email == $value) {
+                return $this->getUserById($user->id);
+            }
+        }
 
-		return $this;
-	}
+        return null;
+    }
 
-	/**
-	 * @return string
-	 */
-	public function getKey(): string {
-		return $this->key;
-	}
+    /**
+     * gets user information by api gateway's internal user id.
+     * an api key is unique
+     *
+     * @param string $apiUserId
+     *
+     * @return ApiUser
+     */
+    public function getUserById(string $apiUserId): ApiUser
+    {
+        if ($user = $this->cache->get($apiUserId)) {
+            return $user;
+        }
 
-	/**
-	 * @param string $key
-	 *
-	 * @return Client
-	 */
-	public function setKey(string $key): Client {
-		$this->key = $key;
+        $client = $this->getClient('users/' . $apiUserId);
+        $client->setMethod('GET');
 
-		return $this;
-	}
+        $response = $client->send();
 
-	/**
-	 * @return StorageInterface
-	 */
-	public function getCache(): StorageInterface {
-		return $this->cache;
-	}
+        if (!$jsonObject = json_decode($response->getBody())) {
+            throw new RuntimeException('invalid api gateway response');
+        }
 
-	/**
-	 * @param StorageInterface $cache
-	 *
-	 * @return Client
-	 */
-	public function setCache(StorageInterface $cache): Client {
-		$this->cache = $cache;
+        $user = new ApiUser();
+        $user->parse($jsonObject);
 
-		return $this;
-	}
+        $this->cache->set($user);
+
+        return $user;
+    }
+
+    public function addUser(ApiUser $apiUser)
+    {
+        $body = array(
+            'user' => array(
+                'email' => $apiUser->email,
+                'first_name' => $apiUser->firstName,
+                'last_name' =>$apiUser->lastName,
+                'terms_and_conditions' => true,
+                'enabled' => true,
+                'registration_source' => __CLASS__,
+                'roles' => $apiUser->roles,
+            ),
+        );
+
+        $client = $this->getClient('users');
+        $client->setMethod('POST');
+        $client->setRawBody(json_encode($body));
+
+        $accept = new Http\Header\Accept();
+        $accept->addMediaType('application/json');
+
+        $client->getRequest()->getHeaders()->addHeader(new Http\Header\ContentType('application/json'));
+        $client->getRequest()->getHeaders()->addHeader($accept);
+
+        $response = $client->send();
+
+        if (!$response->isSuccess() || ($jsonObject = @json_decode($response->getBody())) === null) {
+            throw new RuntimeException('invalid api gateway response');
+        }
+
+        $user = new ApiUser();
+        $user->parse($jsonObject);
+
+        $this->cache->get($user->id);
+        $this->cache->set($user);
+
+        return $user;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEndpoint(): string
+    {
+        return $this->endpoint;
+    }
+
+    /**
+     * @param string $endpoint
+     *
+     * @return Client
+     */
+    public function setEndpoint(string $endpoint): Client
+    {
+        $this->endpoint = $endpoint;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getAdminAuthToken(): string
+    {
+        return $this->adminAuthToken;
+    }
+
+    /**
+     * @param string $adminAuthToken
+     *
+     * @return Client
+     */
+    public function setAdminAuthToken(string $adminAuthToken): Client
+    {
+        $this->adminAuthToken = $adminAuthToken;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getKey(): string
+    {
+        return $this->key;
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return Client
+     */
+    public function setKey(string $key): Client
+    {
+        $this->key = $key;
+
+        return $this;
+    }
+
+    /**
+     * @return StorageInterface
+     */
+    public function getCache(): StorageInterface
+    {
+        return $this->cache;
+    }
+
+    /**
+     * @param StorageInterface $cache
+     *
+     * @return Client
+     */
+    public function setCache(StorageInterface $cache): Client
+    {
+        $this->cache = $cache;
+
+        return $this;
+    }
 }

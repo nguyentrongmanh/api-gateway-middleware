@@ -23,7 +23,7 @@ class MongoDb implements StorageInterface
 		$this->collection->insertOne([
 			'_id' => $apiUser->getId(),
 			'userId' => $apiUser->getUserId(),
-			'agentId' => $apiUser->getAgentId(),
+			'agentId' => $apiUser->getApiKey(),
 		]);
 	}
 
@@ -33,7 +33,7 @@ class MongoDb implements StorageInterface
 			$apiUser = new ApiUser();
 			$apiUser->setId($result->_id);
 			$apiUser->setUserId($result->userId);
-			$apiUser->setAgentId($result->agentId);
+			$apiUser->setApiKey($result->agentId);
 
 			return $apiUser;
 		}
