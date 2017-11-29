@@ -149,7 +149,7 @@ class ApiUser
      */
     public function getRoles(): array
     {
-        return $this->roles;
+        return (array) $this->roles;
     }
 
     /**

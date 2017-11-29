@@ -45,7 +45,6 @@ class Client
      */
     public function __construct() // Collection $userAgentCollection)
     {
-        // $this->userAgentCollection = $userAgentCollection;
         $this->cache = new NullStorage([]);
     }
 
