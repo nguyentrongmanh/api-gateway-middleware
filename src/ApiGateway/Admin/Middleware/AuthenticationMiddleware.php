@@ -8,6 +8,7 @@ use Psr\Http\Server\RequestHandlerInterface as DelegateInterface;
 use Psr\Http\Server\MiddlewareInterface as ServerMiddlewareInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zend\Expressive\Router\RouteResult;
 use Zend\ProblemDetails\ProblemDetailsResponseFactory;
 
@@ -44,7 +45,7 @@ class AuthenticationMiddleware implements ServerMiddlewareInterface
      *
      * @return ResponseInterface
      */
-    public function process(ServerRequestInterface $request, DelegateInterface $delegate) : ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler) : ResponseInterface
     {
         if (!$route = $request->getAttribute(RouteResult::class, false)) {
             return $this->problemDetailsResponseFactory->createResponse(
@@ -75,6 +76,6 @@ class AuthenticationMiddleware implements ServerMiddlewareInterface
             );
         }
 
-        return $delegate->process($request->withAttribute(ApiUser::class, $user));
+        return $handler->handle($request->withAttribute(ApiUser::class, $user));
     }
 }
