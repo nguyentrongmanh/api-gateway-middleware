@@ -15,5 +15,11 @@
         "psr-4": {
             "ApiGatewayTest\\": "test/ApiGatewayTest/"
         }
+    },
+    {
+    "repositories": [{
+            "type": "composer",
+            "url": "https://packagist.go-suite.rocks/"
+        }]
     }
 }
