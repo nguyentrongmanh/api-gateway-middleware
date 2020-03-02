@@ -16,10 +16,10 @@
             "ApiGatewayTest\\": "test/ApiGatewayTest/"
         }
     },
-    {
-    "repositories": [{
+    "repositories": [
+        {
             "type": "composer",
             "url": "https://packagist.go-suite.rocks/"
-        }]
-    }
+        }
+    ]
 }
