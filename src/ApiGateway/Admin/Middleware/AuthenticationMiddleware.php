@@ -55,7 +55,7 @@ class AuthenticationMiddleware implements ServerMiddlewareInterface
             );
         }
 
-        if (!isset($request->getServerParams()['HTTP_X_API_USER_ID'])) {
+        if (!$request->hasHeader('x-api-user-id')) {
             return $this->problemDetailsResponseFactory->createResponse(
                 $request,
                 500,
@@ -63,9 +63,11 @@ class AuthenticationMiddleware implements ServerMiddlewareInterface
             );
         }
 
+        $apiUserId = $request->getHeader('x-api-user-id')[0] ?? '';
+
         try {
             $user = $this->apiClient->getUserById(
-                $request->getServerParams()['HTTP_X_API_USER_ID'] ?? null,
+                $apiUserId,
                 $route->getMatchedParams()['agentId'] ?? null
             );
         } catch (\Exception $e) {
