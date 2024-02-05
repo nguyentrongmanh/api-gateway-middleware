@@ -3,8 +3,8 @@
 namespace ApiGateway\Admin\Middleware;
 
 use ApiGateway\Admin\Client;
-use Interop\Container\ContainerInterface;
-use Zend\ProblemDetails\ProblemDetailsResponseFactory;
+use Psr\Container\ContainerInterface;
+use Mezzio\ProblemDetails\ProblemDetailsResponseFactory;
 
 class AuthenticationFactory
 {

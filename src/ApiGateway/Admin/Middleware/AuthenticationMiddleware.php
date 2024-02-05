@@ -9,8 +9,8 @@ use Psr\Http\Server\MiddlewareInterface as ServerMiddlewareInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Expressive\Router\RouteResult;
-use Zend\ProblemDetails\ProblemDetailsResponseFactory;
+use Mezzio\Router\RouteResult;
+use Mezzio\ProblemDetails\ProblemDetailsResponseFactory;
 
 class AuthenticationMiddleware implements ServerMiddlewareInterface
 {

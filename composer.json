@@ -2,9 +2,9 @@
     "name": "smg-go-suite-library/api-gateway-middleware",
     "description": "PSR-7 middleware to get SMG user information by api gateways user id",
     "require": {
-        "php": "^7.1",
-	"zendframework/zend-http": "^2.8",
-        "zendframework/zend-problem-details": "^1.0"
+        "php": "^8.2",
+        "laminas/laminas-http": "^2.19.0",
+        "mezzio/mezzio-problem-details": "^1.13.1"
     },
     "autoload": {
         "psr-4": {

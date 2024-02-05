@@ -8,7 +8,7 @@ use ApiGateway\Admin\Entity\ApiUser;
 use ApiGateway\Exception\InvalidArgumentException;
 use ApiGateway\Exception\RuntimeException;
 use MongoDB\Collection;
-use Zend\Http;
+use Laminas\Http;
 
 class Client
 {

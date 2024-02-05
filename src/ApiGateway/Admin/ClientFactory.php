@@ -2,7 +2,7 @@
 
 namespace ApiGateway\Admin;
 
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 class ClientFactory
 {

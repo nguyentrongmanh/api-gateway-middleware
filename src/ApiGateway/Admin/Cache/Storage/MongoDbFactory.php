@@ -2,7 +2,7 @@
 
 namespace ApiGateway\Admin\Cache\Storage;
 
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 class MongoDbFactory
 {
